@@ -1,0 +1,3 @@
+https://es.acervolima.com/pyqt5-como-cambiar-la-fuente-y-el-tamano-del-texto-de-la-etiqueta/
+
+https://pythondiario.com/2014/05/obtener-fecha-y-hora-actual-en-python.html
