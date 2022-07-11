@@ -9,11 +9,22 @@
 
 
 from ast import Lambda
+from datetime import datetime
+from email.errors import MessageError
 from xml.dom.pulldom import parseString
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import * 
 from PyQt5.QtGui import * 
 import time
+import pandas as pd
+import numpy as np
+import mysql.connector
+import sys
+from PyQt5.QtCore import *
+from tkinter import messagebox
+from datetime import datetime
+
+
 
 
 class Ui_MainWindow(object):
@@ -71,9 +82,13 @@ class Ui_MainWindow(object):
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
         self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 1199, 239))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
-        self.table_corredores = QtWidgets.QTableView(self.scrollAreaWidgetContents)
+        self.table_corredores = QTableWidget(self.scrollAreaWidgetContents)
+        # self.table_corredores = QtWidgets.QTableView(self.scrollAreaWidgetContents)
         self.table_corredores.setGeometry(QtCore.QRect(0, 0, 1201, 241))
         self.table_corredores.setObjectName("table_corredores")
+        self.table_corredores.setSelectionMode(QAbstractItemView.SingleSelection)
+        
+        
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.label_5 = QtWidgets.QLabel(self.centralwidget)
         self.label_5.setGeometry(QtCore.QRect(610, 150, 161, 16))
@@ -93,6 +108,16 @@ class Ui_MainWindow(object):
         self.button_buscar.setIcon(icon)
         self.button_buscar.setIconSize(QtCore.QSize(38, 38))
         self.button_buscar.setObjectName("button_buscar")
+
+        self.button_buscar1 = QtWidgets.QPushButton(self.centralwidget)
+        self.button_buscar1.setGeometry(QtCore.QRect(330, 80, 41, 41))
+        self.button_buscar1.setText("")
+        icon1 = QtGui.QIcon()
+        icon1.addPixmap(QtGui.QPixmap("images/Edit_icon_(the_Noun_Project_30184).svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.button_buscar1.setIcon(icon1)
+        self.button_buscar1.setIconSize(QtCore.QSize(38, 38))
+        self.button_buscar1.setObjectName("button_buscar")
+
         self.button_guardar = QtWidgets.QPushButton(self.centralwidget)
         self.button_guardar.setGeometry(QtCore.QRect(980, 180, 121, 31))
         self.button_guardar.setStyleSheet("background-color: rgb(255, 255, 0);\n"
@@ -172,53 +197,288 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         self.button_buscar.clicked.connect(self.buscarCorredor)
         self.button_buscar_3.clicked.connect(self.buscar)
-        self.button_guardar.clicked.connect(self.guardar)
+        self.button_buscar1.clicked.connect(self.listar)
+        self.button_guardar.clicked.connect(self.asignarNumero)
         self.button_enviar.clicked.connect(self.enviar)
         self.button_parar.clicked.connect(self.parar)
         self.button_correr.clicked.connect(self.correr)
         self.button_carrera.clicked.connect(self.enCarrera)
-        self.button_meta.clicked.connect(self.distancia)
-        # self.table_corredores.setRowCount(4)
-        # self.table_corredores.setColumnCount(2)
-        self.table_corredores.setSelectionModel(0,0, QTableWidgetItem("Name"))
-        self.table_corredores.setItem(0,1, QTableWidgetItem("City"))
-        self.table_corredores.setItem(1,0, QTableWidgetItem("Aloysius"))
-        self.table_corredores.setItem(1,1, QTableWidgetItem("Indore"))
-        self.table_corredores.setItem(2,0, QTableWidgetItem("Alan"))
-        self.table_corredores.setItem(2,1, QTableWidgetItem("Bhopal"))
-        self.table_corredores.setItem(3,0, QTableWidgetItem("Arnavi"))
-        self.table_corredores.setItem(3,1, QTableWidgetItem("Mandsaur"))
-
+        self.button_meta.clicked.connect(self.listarDistancia)
         
+        #Tabla de datos
+        #Ocultar encabezado vertical
+        # self.table_corredores.verticalHeader().setVisible(False)
+        self.table_corredores.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table_corredores.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.table_corredores.setWordWrap(False)
+        #Deshabilitar resaltado de en el texto al seleccionar una fila
+        self.table_corredores.horizontalHeader().setHighlightSections(False)
+        self.table_corredores.horizontalHeader().setStretchLastSection(True)
+        #Establecer ancho de las columnas
+        # self.table_corredores.horizontalHeader().setDefaultSectionSize(150)
+        self.table_corredores.setAutoScrollMargin(10)
+        #darle una funcion al combobox
+        self.combo_dis.activated.connect(self.listarDistancia)
+        self.combo_dis_2.activated.connect(self.listarCategoria)
+                
+        stylesheet = "::section{Background-color:rgb(255, 255, 0)}"
+        self.table_corredores.horizontalHeader().setStyleSheet(stylesheet)
+        self.table_corredores.verticalHeader().setStyleSheet(stylesheet)
+        #Cronometro
+        # reloj = Cronometro(self.label_3)
+        self.hora_inicio = datetime.now()
         self.distancia = 'Todas'
-        
+        self.leerDatos()
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+        self.label_4.setText(self.obtenerTiempo())
+        
+        self.contadorEliteMasculino =1
+        self.contadorEliteFemenino =1
+        self.contadorMasterFemenino =1
+        self.contadorMasterMasculino =1
+        
+    
+
+    def obtenerTiempo(self):
+        segundos_transcurridos = (datetime.now()-self.hora_inicio).total_seconds()
+        
+        return self.formatearTiempo(int(segundos_transcurridos))
+    def formatearTiempo(self,segundos):
+        horas = int(segundos / 60 / 60)
+        segundos -= horas *60*60
+        minutos = int(segundos/60)
+        segundos -= minutos*60
+        return f"{horas:02d}:{minutos:02d}:{segundos:02d}"
+    def refrescarTiempo(self):
+        return "Refrescando"
+    def start(self):
+        pass
 
     
+    def columns(self):
+        self.keyss= list(self.data.keys())
+        self.columnas = []
+        for nombre in self.keyss:
+            self.columnas.append(nombre)
+        self.table_corredores.setColumnCount(len(self.columnas))
+        self.table_corredores.setRowCount(len(self.data["Nombres"]))
+        
+        self.table_corredores.setHorizontalHeaderLabels(self.columnas)
+        header_view = self.table_corredores.horizontalHeader()
+        idx = header_view.count() - 1
+        header_view.setSectionResizeMode(idx, QtWidgets.QHeaderView.ResizeToContents)
+    
+    
+    def leerDatos(self):
+        df = pd.read_csv("example1.csv", sep= ',')
+        self.data = {"#": list(df["#"]), "Nombres": list(df["Nombres"]), "# Documento": df["# Documento"],
+                "Distancia [Km]": df["Distancia [Km]"],"Puesto": df["Puesto"], "Categoria": df["Categoria"],
+                "Hora Salida": df["Hora Salida"], "Hora Llegada": df["Hora Llegada"], "Tiempo de Carrera":df["Tiempo de Carrera"],
+                "Estado": df["Estado"],"Telefono": df["Telefono"],
+                }
+        self.keyss= list(self.data.keys())
+
+    # def leerDatos(self):
+    #     df = pd.read_csv("MorronTrailRun2022_2.csv", sep= ',')
+        
+    #     nombres = df["Nombre"]
+    #     apellidos = df["Apellidos"]
+        
+    #     nombre = []
+    #     salida = []
+    #     llegada = []
+    #     tiempo = []
+    #     numeroCorredor = []
+    #     posicion= []
+    #     estado= []
+    #     categoria = []
+    #     for indice in range(0, len(nombres)):
+    #         nombre.append(nombres[indice].title()+" "+apellidos[indice].title())
+    #         salida.append("Salida")
+    #         llegada.append("Salida")
+    #         tiempo.append("Salida")
+    #         estado.append('Linea de Partida')
+    #         numeroCorredor.append("No asignado")
+    #         posicion.append(int(0))
+    #         if df["Edad"][indice] < 40:
+    #             if df["Soy"][indice] == "Mujer":
+    #                 categoria.append("Elite femenino")
+    #             else:
+    #                 categoria.append("Elite masculino")
+    #         else:
+    #             if df["Soy"][indice] == "Mujer":
+    #                 categoria.append("Master femenino")
+    #             else:
+    #                 categoria.append("Master maculino") 
+    #     self.data = {"#": numeroCorredor, "Nombres": nombre, "# Documento": df["Numero de documento"],
+    #             "Distancia [Km]": df["Distancia"],"Puesto": posicion, "Categoria": categoria,
+    #             "Hora Salida": salida, "Hora Llegada": llegada, "Tiempo de Carrera":tiempo,
+    #             "Estado": estado,"Telefono": df["Telefono de contacto"],
+    #             }
+    #     self.keyss= list(self.data.keys())
+        
+    #     self.df = pd.DataFrame(self.data)
+    
+    def guardarCsv(self):
+        df = pd.DataFrame(self.data)
+        df.to_csv('example1.csv',index=False)    
+        
+   
+    def listar(self):
+        # self.leerDatos()
+        self.columns()
+        
+        for fila in range(0,len(self.data["Nombres"])):
+            for columna in range(0, len(self.keyss)):
+                colu= self.keyss[columna]
+                self.table_corredores.setItem(fila,columna,QTableWidgetItem(str(self.data[colu][fila])))
+        self.guardarCsv()
+    def listarDistancia(self):
+        self.deleteAllRows(self.table_corredores)
+        self.leerDatos()
+        self.columns()
+        distancia = self.combo_dis.currentText()
+        print(distancia)
+        print(type(self.data["Distancia [Km]"]))
+        if distancia == "12k":
+            dist= 12
+            freq = list(self.data["Distancia [Km]"]).count(12)
+        else:
+            freq = list(self.data["Distancia [Km]"]).count(27)
+            dist=27
+        
+        self.table_corredores.setColumnCount(len(self.columnas))
+        self.table_corredores.setRowCount(freq)
+        contador=0
+        for fila in range(0,len(self.data["#"])):
+            if dist == self.data["Distancia [Km]"][fila]:
+                contador+=1
+                for columna in range(0, len(self.keyss)):
+                    colu= self.keyss[columna]
+                    self.table_corredores.setItem(contador-1,columna,QTableWidgetItem(str(self.data[colu][fila])))
+
+    def listarCategoria(self):
+        self.deleteAllRows(self.table_corredores)
+        self.leerDatos()
+        self.columns()
+        categoria = self.combo_dis_2.currentText()
+        if categoria == "Elite masculino":
+            freq = list(self.data["Categoria"]).count("Elite masculino")
+        elif categoria == "Elite femenino":
+            freq = list(self.data["Categoria"]).count("Elite femenino")
+        elif categoria == "Master femenino":
+            freq = list(self.data["Categoria"]).count("Master femenino")
+        elif categoria == "Master maculino":
+            freq = list(self.data["Categoria"]).count("Master maculino")
+        self.table_corredores.setColumnCount(len(self.columnas))
+        self.table_corredores.setRowCount(freq)
+        contador =0
+        for fila in range(0,len(self.data["#"])):
+           if categoria == self.data["Categoria"][fila]:
+                contador+=1
+                for columna in range(0, len(self.keyss)):
+                    colu= self.keyss[columna]
+                    self.table_corredores.setItem(contador-1,columna,QTableWidgetItem(str(self.data[colu][fila])))
+                    
         #self.button_buscar.hide()
-    def distancia(self):
-        self.distancia = self.combo_dis.currentText()
-        print(self.distancia)
+    
+    
+
+
     def mostrarHora(self):
             self.label_11.setText(time.strftime("%H:%M:%S"))
             QtCore.QTimer.singleShot(1000, self.mostrarHora)
     def enviar(self):
         print('Enviar')
+    def asignarNumero(self):
+        corredor = int(self.lineEdit.text())
+        numero = self.edit_corredor.text()
+        for fila in range(0, len(self.data["# Documento"])):
+            if corredor == self.data["# Documento"][fila]:
+                self.data["#"][fila]= int(numero)
+                
+        self.listar()
     def buscarCorredor(self):
         self.corredor = self.edit_corredor.text()
         print(self.corredor)
     def guardar(self):
         self.tiempoCorredor = time.strftime("%H:%M:%S")
         print(self.tiempoCorredor)
+    def deleteAllRows(self, table:QTableWidget) -> None:
+        #Obtener el modelo de la tabla
+        model:QAbstractTableModel = table.model()
+        #Remover todos las filas
+        model.removeRows(0, model.rowCount())   
     def buscar(self):
-        self.corredor = self.lineEdit.text()
-        print(self.corredor)
+        self.corredor = int(self.lineEdit.text())
+        if self.corredor != "":
+            self.deleteAllRows(self.table_corredores)
+            for fila in range(0, len(self.data["# Documento"])):
+                if self.corredor == self.data["# Documento"][fila]:
+                    for columna in range(0, len(self.keyss)):
+                        colu= self.keyss[columna]
+                        self.table_corredores.setColumnCount(len(self.columnas))
+                        self.table_corredores.setRowCount(1)
+                        self.table_corredores.setItem(0,columna,QTableWidgetItem(str(self.data[colu][fila])))
+                        
+
+        else:
+            self.listar()
     def correr(self):
-        self.inicio = time.strftime("%H:%M:%S")
-        print(self.inicio)
+        inicio = time.strftime("%H:%M:%S")
+        for fila in range(0, len(self.data["# Documento"])):
+            if self.data["#"][fila] != 'Null':
+                self.data["Hora Salida"][fila]= inicio
+                self.data["Hora Llegada"][fila]= "..."
+                self.data["Tiempo de Carrera"][fila]= "esperando..."
+                self.data["Estado"][fila]= "En ruta ...\U0001F3C3 \U0001F5FB "
+                self.listar()
+                self.button_correr.setEnabled(False)
+    def calcularTiempo(self,salida, llegada):
+        print(salida)
+        print(llegada)
+        time_1=datetime.strftime(salida,"%H:%M:%S")
+        time_2=datetime.strftime(llegada,"%H:%M:%S")
+
+        time_interval = time_2 - time_1
+        return time_interval
+        
+
+
+
     def parar(self):
-        self.final = time.strftime("%H:%M:%S")
-        print(self.final)
+
+            final = time.strftime("%H:%M:%S")
+            corredor = int(self.edit_corredor.text())
+            
+            for fila in range(0, len(self.data["# Documento"])):
+                if self.data["Hora Llegada"][fila] == "...":
+                    if self.data["#"][fila]==corredor:
+                        self.data["Hora Llegada"][fila]= final
+                        self.data["Estado"][fila]= "En Meta \U0001F973 \U0001F5FB "
+                        tiempo1=self.data["Hora Salida"][fila]
+                        tiempo2= self.data["Hora Llegada"][fila]
+                        time_1=datetime.strptime(tiempo1,"%H:%M:%S")
+                        time_2=datetime.strptime(tiempo2,"%H:%M:%S")
+                        time_interval = time_2 - time_1
+                        print(time_interval)
+                        self.data["Tiempo de Carrera"][fila]= time_interval
+                        if self.data["Categoria"][fila] == "Elite masculino":
+                            self.data["Puesto"][fila]=self.contadorEliteMasculino
+                            self.contadorEliteMasculino += 1
+                        elif self.data["Categoria"][fila] == "Elite femenino":
+                            self.data["Puesto"][fila] = self.contadorEliteFemenino
+                            self.contadorEliteFemenino +=1
+                        elif self.data["Categoria"][fila] == "Master femenino":
+                            self.data["Puesto"][fila] = self.contadorMasterFemenino
+                            self.contadorMasterFemenino +=1
+                        elif self.data["Categoria"][fila] == "Master maculino":
+                            self.data["Puesto"][fila] = self.contadorMasterMasculino
+                            self.contadorMasterMasculino +=1
+                        self.listar()
+                else:
+                    print("Corredor en meta")
+    
     def enCarrera(self):
         self.estado = True
         print(self.estado)
