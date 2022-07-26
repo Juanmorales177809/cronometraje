@@ -236,7 +236,13 @@ class Ui_MainWindow(object):
         self.contadorEliteFemenino =1
         self.contadorMasterFemenino =1
         self.contadorMasterMasculino =1
-        
+        self.contadorGeneralDamas = 1
+        self.contadorGeneralHombres = 1
+        self.morron= QtWidgets.QLabel(self.centralwidget)
+        pixmax = QPixmap("./image/image.png")  
+        self.morron.setPixmap(pixmax)
+        self.morron.setGeometry(QtCore.QRect(20, 410, 211, 71))
+
     
 
     def obtenerTiempo(self):
@@ -270,17 +276,16 @@ class Ui_MainWindow(object):
     
     
     def leerDatos(self):
-        df = pd.read_csv("example1.csv", sep= ',')
+        df = pd.read_csv("example2.csv", sep= ',')
         self.data = {"#": list(df["#"]), "Nombres": list(df["Nombres"]), "# Documento": df["# Documento"],
-                "Distancia [Km]": df["Distancia [Km]"],"Puesto": df["Puesto"], "Categoria": df["Categoria"],
-                "Hora Salida": df["Hora Salida"], "Hora Llegada": df["Hora Llegada"], "Tiempo de Carrera":df["Tiempo de Carrera"],
-                "Estado": df["Estado"],"Telefono": df["Telefono"],
+                "Distancia [Km]": df["Distancia [Km]"],"Puesto Cat": df["Puesto Cat"], "Categoria": df["Categoria"],
+                "General":list(df["General"]),"Hora Salida":list(df["Hora Salida"]), "Hora Llegada": list(df["Hora Llegada"]), "Tiempo de Carrera":list(df["Tiempo de Carrera"]),
+                "Estado": list(df["Estado"]),"Telefono": df["Telefono"],"Camiseta":df["Camiseta"],"Kit":df["Kit"],"Soy":df["Soy"],
                 }
         self.keyss= list(self.data.keys())
 
     # def leerDatos(self):
     #     df = pd.read_csv("MorronTrailRun2022_2.csv", sep= ',')
-        
     #     nombres = df["Nombre"]
     #     apellidos = df["Apellidos"]
         
@@ -292,6 +297,9 @@ class Ui_MainWindow(object):
     #     posicion= []
     #     estado= []
     #     categoria = []
+    #     posicionGeneral = []
+    #     kit = []
+        
     #     for indice in range(0, len(nombres)):
     #         nombre.append(nombres[indice].title()+" "+apellidos[indice].title())
     #         salida.append("Salida")
@@ -299,7 +307,9 @@ class Ui_MainWindow(object):
     #         tiempo.append("Salida")
     #         estado.append('Linea de Partida')
     #         numeroCorredor.append("No asignado")
+    #         posicionGeneral.append(int(0))
     #         posicion.append(int(0))
+    #         kit.append("Pendiente")
     #         if df["Edad"][indice] < 40:
     #             if df["Soy"][indice] == "Mujer":
     #                 categoria.append("Elite femenino")
@@ -311,9 +321,10 @@ class Ui_MainWindow(object):
     #             else:
     #                 categoria.append("Master maculino") 
     #     self.data = {"#": numeroCorredor, "Nombres": nombre, "# Documento": df["Numero de documento"],
-    #             "Distancia [Km]": df["Distancia"],"Puesto": posicion, "Categoria": categoria,
-    #             "Hora Salida": salida, "Hora Llegada": llegada, "Tiempo de Carrera":tiempo,
-    #             "Estado": estado,"Telefono": df["Telefono de contacto"],
+    #             "Distancia [Km]": df["Distancia"],"Puesto Cat": posicion, "Categoria": categoria,
+    #             "General":posicionGeneral,"Hora Salida": salida, "Hora Llegada": llegada, "Tiempo de Carrera":tiempo,
+    #             "Estado": estado,"Telefono": df["Telefono de contacto"],"Camiseta":df["Talla de camiseta"],"Kit":kit,
+    #             "Soy":df["Soy"],
     #             }
     #     self.keyss= list(self.data.keys())
         
@@ -321,15 +332,14 @@ class Ui_MainWindow(object):
     
     def guardarCsv(self):
         df = pd.DataFrame(self.data)
-        df.to_csv('example1.csv',index=False)    
-        
-   
+        df.to_csv('example2.csv',index=False)    
+    
     def listar(self):
         # self.leerDatos()
         self.columns()
         
         for fila in range(0,len(self.data["Nombres"])):
-            for columna in range(0, len(self.keyss)):
+            for columna in range(0, len(self.keyss)-1):
                 colu= self.keyss[columna]
                 self.table_corredores.setItem(fila,columna,QTableWidgetItem(str(self.data[colu][fila])))
         self.guardarCsv()
@@ -393,14 +403,33 @@ class Ui_MainWindow(object):
     def asignarNumero(self):
         corredor = int(self.lineEdit.text())
         numero = self.edit_corredor.text()
+        print(type(corredor), type(numero))
         for fila in range(0, len(self.data["# Documento"])):
             if corredor == self.data["# Documento"][fila]:
-                self.data["#"][fila]= int(numero)
-                
+                if self.data["#"][fila] == "No asignado":
+                    print("Hola")
+                    self.data["#"][fila]= int(numero)
+                    self.data["Kit"][fila]="Entregado"
+                else:
+                    print("Ya tiene numero asignado")
         self.listar()
+        self.edit_corredor.clear()
+        self.lineEdit.clear()
     def buscarCorredor(self):
-        self.corredor = self.edit_corredor.text()
-        print(self.corredor)
+        corredor = self.edit_corredor.text()
+        
+        for fila in range(0, len(self.data["# Documento"])):
+                if corredor == self.data["#"][fila]:
+                    for columna in range(0, len(self.keyss)):
+                            colu= self.keyss[columna]
+                            self.table_corredores.setColumnCount(len(self.columnas))
+                            self.table_corredores.setRowCount(1)
+                            self.table_corredores.setItem(0,columna,QTableWidgetItem(str(self.data[colu][fila])))
+                        
+
+
+
+        
     def guardar(self):
         self.tiempoCorredor = time.strftime("%H:%M:%S")
         print(self.tiempoCorredor)
@@ -410,6 +439,7 @@ class Ui_MainWindow(object):
         #Remover todos las filas
         model.removeRows(0, model.rowCount())   
     def buscar(self):
+        
         self.corredor = int(self.lineEdit.text())
         if self.corredor != "":
             self.deleteAllRows(self.table_corredores)
@@ -420,10 +450,11 @@ class Ui_MainWindow(object):
                         self.table_corredores.setColumnCount(len(self.columnas))
                         self.table_corredores.setRowCount(1)
                         self.table_corredores.setItem(0,columna,QTableWidgetItem(str(self.data[colu][fila])))
-                        
+                      
 
         else:
             self.listar()
+        self.lineEdit.clear() 
     def correr(self):
         inicio = time.strftime("%H:%M:%S")
         for fila in range(0, len(self.data["# Documento"])):
@@ -447,13 +478,16 @@ class Ui_MainWindow(object):
 
 
     def parar(self):
-
+            print("Parando")
+        
             final = time.strftime("%H:%M:%S")
-            corredor = int(self.edit_corredor.text())
+            corredor = str(self.edit_corredor.text())
             
             for fila in range(0, len(self.data["# Documento"])):
                 if self.data["Hora Llegada"][fila] == "...":
+                    
                     if self.data["#"][fila]==corredor:
+                        print("Hola mundo")
                         self.data["Hora Llegada"][fila]= final
                         self.data["Estado"][fila]= "En Meta \U0001F973 \U0001F5FB "
                         tiempo1=self.data["Hora Salida"][fila]
@@ -463,22 +497,30 @@ class Ui_MainWindow(object):
                         time_interval = time_2 - time_1
                         print(time_interval)
                         self.data["Tiempo de Carrera"][fila]= time_interval
+                        if self.data["Soy"][fila] == "Mujer":
+                            self.data["General"][fila]= self.contadorGeneralDamas
+                            self.contadorGeneralDamas += 1
+                        elif self.data["Soy"][fila]== "Hombre":
+                            self.data["General"][fila]= self.contadorGeneralHombres
+                            self.contadorGeneralHombres +=1
                         if self.data["Categoria"][fila] == "Elite masculino":
-                            self.data["Puesto"][fila]=self.contadorEliteMasculino
+                            self.data["Puesto Cat"][fila]=self.contadorEliteMasculino
                             self.contadorEliteMasculino += 1
                         elif self.data["Categoria"][fila] == "Elite femenino":
-                            self.data["Puesto"][fila] = self.contadorEliteFemenino
+                            self.data["Puesto Cat"][fila] = self.contadorEliteFemenino
                             self.contadorEliteFemenino +=1
                         elif self.data["Categoria"][fila] == "Master femenino":
-                            self.data["Puesto"][fila] = self.contadorMasterFemenino
+                            self.data["Puesto Cat"][fila] = self.contadorMasterFemenino
                             self.contadorMasterFemenino +=1
                         elif self.data["Categoria"][fila] == "Master maculino":
-                            self.data["Puesto"][fila] = self.contadorMasterMasculino
+                            self.data["Puesto Cat"][fila] = self.contadorMasterMasculino
                             self.contadorMasterMasculino +=1
                         self.listar()
+                        self.edit_corredor.clear()
                 else:
                     print("Corredor en meta")
-    
+        
+        
     def enCarrera(self):
         self.estado = True
         print(self.estado)
