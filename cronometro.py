@@ -276,13 +276,14 @@ class Ui_MainWindow(object):
     
     
     def leerDatos(self):
-        df = pd.read_csv("example2.csv", sep= ',')
-        self.data = {"#": list(df["#"]), "Nombres": list(df["Nombres"]), "# Documento": df["# Documento"],
-                "Distancia [Km]": df["Distancia [Km]"],"Puesto Cat": df["Puesto Cat"], "Categoria": df["Categoria"],
-                "General":list(df["General"]),"Hora Salida":list(df["Hora Salida"]), "Hora Llegada": list(df["Hora Llegada"]), "Tiempo de Carrera":list(df["Tiempo de Carrera"]),
-                "Estado": list(df["Estado"]),"Telefono": df["Telefono"],"Camiseta":df["Camiseta"],"Kit":df["Kit"],"Soy":df["Soy"],
-                }
-        self.keyss= list(self.data.keys())
+        pass
+        # df = pd.read_csv("example2.csv", sep= ',')
+        # self.data = {"#": list(df["#"]), "Nombres": list(df["Nombres"]), "# Documento": df["# Documento"],
+        #         "Distancia [Km]": df["Distancia [Km]"],"Puesto Cat": df["Puesto Cat"], "Categoria": df["Categoria"],
+        #         "General":list(df["General"]),"Hora Salida":list(df["Hora Salida"]), "Hora Llegada": list(df["Hora Llegada"]), "Tiempo de Carrera":list(df["Tiempo de Carrera"]),
+        #         "Estado": list(df["Estado"]),"Telefono": df["Telefono"],"Camiseta":df["Camiseta"],"Kit":df["Kit"],"Soy":df["Soy"],
+        #         }
+        # self.keyss= list(self.data.keys())
 
     # def leerDatos(self):
     #     df = pd.read_csv("MorronTrailRun2022_2.csv", sep= ',')
